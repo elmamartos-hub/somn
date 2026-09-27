@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leons sömnvecka</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      color: #263238;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 50px;
+    }
+
+    header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .intro {
+      margin: 0;
+      color: #607d8b;
+    }
+
+    .night {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .night-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .night-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .period {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px;
+      background: #f8fafb;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #455a64;
+    }
+
+    input[type="time"] {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cfd8dc;
+      border-radius: 8px;
+      font-size: 16px;
+      background: white;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .add-btn {
+      background: #e3f2fd;
+      color: #1565c0;
+      margin-top: 4px;
+    }
+
+    .add-btn:hover {
+      background: #bbdefb;
+    }
+
+    .remove-btn {
+      background: #ffebee;
+      color: #c62828;
+      height: 42px;
+    }
+
+    .remove-btn:hover {
+      background: #ffcdd2;
+    }
+
+    .summary {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: #f1f8e9;
+      color: #33691e;
+      line-height: 1.6;
+    }
+
+    .summary strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .weekly-summary {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .weekly-summary h2 {
+      margin-top: 0;
+    }
+
+    .total-box {
+      background: #eceff1;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .total-number {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .summary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .summary-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #eceff1;
+    }
+
+    .summary-list li:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 600px) {
+      .period {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .remove-btn {
+        grid-column: span 2;
+        width: 100%;
+      }
+
+      .night-header {
+        align-items: flex-start;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>Leons sömnvecka</h1>
+    <p class="intro">
+      Fyll i när han somnar och vaknar. Lägg till fler sömnperioder om han vaknar under natten.
+      Informationen sparas inte.
+    </p>
+  </header>
+
+  <main id="nights"></main>
+
+  <section class="weekly-summary">
+    <h2>Veckosammanställning</h2>
+
+    <ul class="summary-list" id="summaryList"></ul>
+
+    <div class="total-box">
+      <div>Total sömn under veckan</div>
+      <div class="total-number" id="weeklyTotal">0h 0min</div>
+
+      <div style="margin-top: 8px;">
+        Genomsnitt per natt:
+        <strong id="weeklyAverage">0h 0min</strong>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+
+<script>
+
+  const nights = [
+    "Söndag → måndag",
+    "Måndag → tisdag",
+    "Tisdag → onsdag",
+    "Onsdag → torsdag",
+    "Torsdag → fredag",
+    "Fredag → lördag",
+    "Lördag → söndag"
+  ];
+
+  const nightsContainer = document.getElementById("nights");
+  const summaryList = document.getElementById("summaryList");
+  const weeklyTotal = document.getElementById("weeklyTotal");
+  const weeklyAverage = document.getElementById("weeklyAverage");
+
+
+  /*
+   * Skapar alla sju nätter
+   */
+  function createNights() {
+
+    nights.forEach((night, nightIndex) => {
+
+      const nightElement = document.createElement("section");
+      nightElement.className = "night";
+      nightElement.dataset.night = nightIndex;
+
+      nightElement.innerHTML = `
+        <div class="night-header">
+          <h2 class="night-title">${night}</h2>
+        </div>
+
+        <div class="periods"></div>
+
+        <button class="add-btn" onclick="addPeriod(${nightIndex})">
+          + Lägg till sömnperiod
+        </button>
+
+        <div class="summary" id="night-summary-${nightIndex}">
+          <strong>Sammanställning</strong>
+          Fyll i tiderna ovan.
+        </div>
+      `;
+
+      nightsContainer.appendChild(nightElement);
+
+      // Varje natt börjar med en sömnperiod
+      addPeriod(nightIndex);
+    });
+  }
+
+
+  /*
+   * Lägger till en ny sömnperiod
+   */
+  function addPeriod(nightIndex) {
+
+    const nightElement =
+      document.querySelector(`[data-night="${nightIndex}"]`);
+
+    const periodsContainer =
+      nightElement.querySelector(".periods");
+
+    const period = document.createElement("div");
+    period.className = "period";
+
+    period.innerHTML = `
+      <div>
+        <label>Somnade</label>
+        <input
+          type="time"
+          class="sleep-start"
+          onchange="calculateAll()"
+        >
+      </div>
+
+      <div>
+        <label>Vaknade</label>
+        <input
+          type="time"
+          class="sleep-end"
+          onchange="calculateAll()"
+        >
+      </div>
+
+      <button
+        class="remove-btn"
+        onclick="removePeriod(this)"
+        title="Ta bort sömnperiod"
+      >
+        Ta bort
+      </button>
+    `;
+
+    periodsContainer.appendChild(period);
+
+    calculateAll();
+  }
+
+
+  /*
+   * Tar bort en sömnperiod
+   */
+  function removePeriod(button) {
+
+    const period = button.closest(".period");
+    const periodsContainer = period.parentElement;
+
+    // Låt alltid minst en rad finnas kvar
+    if (periodsContainer.children.length > 1) {
+      period.remove();
+    } else {
+      period.querySelector(".sleep-start").value = "";
+      period.querySelector(".sleep-end").value = "";
+    }
+
+    calculateAll();
+  }
+
+
+  /*
+   * Omvandlar HH:MM till minuter från midnatt
+   */
+  function timeToMinutes(time) {
+
+    if (!time) {
+      return null;
+    }
+
+    const parts = time.split(":");
+
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  }
+
+
+  /*
+   * Formaterar minuter som exempelvis:
+   * 314 -> 5h 14min
+   */
+  function formatDuration(minutes) {
+
+    if (minutes <= 0) {
+      return "0min";
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+
+    if (hours === 0) {
+      return `${mins}min`;
+    }
+
+    if (mins === 0) {
+      return `${hours}h`;
+    }
+
+    return `${hours}h ${mins}min`;
+  }
+
+
+  /*
+   * Räknar ut en enskild natt
+   */
+  function calculateNight(nightIndex) {
+
+    const nightElement =
+      document.querySelector(`[data-night="${nightIndex}"]`);
+
+    const periods =
+      [...nightElement.querySelectorAll(".period")];
+
+    const sleepPeriods = [];
+
+    for (const period of periods) {
+
+      const startInput = period.querySelector(".sleep-start");
+      const endInput = period.querySelector(".sleep-end");
+
+      const start = timeToMinutes(startInput.value);
+      const end = timeToMinutes(endInput.value);
+
+      // Om raden inte är ifylld alls, hoppa över den
+      if (start === null && end === null) {
+        continue;
+      }
+
+      // Om bara ena tiden är ifylld
+      if (start === null || end === null) {
+        return {
+          error: "Fyll i både när han somnade och när han vaknade."
+        };
+      }
+
+      let adjustedEnd = end;
+
+      /*
+       * Om sluttiden är tidigare än starttiden
+       * betyder det att han vaknade efter midnatt.
+       *
+       * Exempel:
+       * 22:30 → 06:00
+       */
+      if (adjustedEnd <= start) {
+        adjustedEnd += 24 * 60;
+      }
+
+      sleepPeriods.push({
+        start: start,
+        end: adjustedEnd,
+        duration: adjustedEnd - start
+      });
+    }
+
+
+    if (sleepPeriods.length === 0) {
+      return {
+        empty: true,
+        totalSleep: 0,
+        awakePeriods: []
+      };
+    }
+
+
+    /*
+     * Sortera perioderna efter när de började.
+     */
+    sleepPeriods.sort((a, b) => a.start - b.start);
+
+
+    /*
+     * Kontrollera att sömnperioderna inte överlappar.
+     */
+    for (let i = 1; i < sleepPeriods.length; i++) {
+
+      if (sleepPeriods[i].start < sleepPeriods[i - 1].end) {
+
+        return {
+          error:
+            "Sömnperioderna överlappar varandra. Kontrollera tiderna."
+        };
+      }
+    }
+
+
+    /*
+     * Räkna ut vakenperioderna mellan sömnperioderna.
+     */
+    const awakePeriods = [];
+
+    for (let i = 1; i < sleepPeriods.length; i++) {
+
+      const awake =
+        sleepPeriods[i].start - sleepPeriods[i - 1].end;
+
+      if (awake > 0) {
+        awakePeriods.push(awake);
+      }
+    }
+
+
+    const totalSleep =
+      sleepPeriods.reduce(
+        (sum, period) => sum + period.duration,
+        0
+      );
+
+
+    return {
+      empty: false,
+      totalSleep: totalSleep,
+      sleepPeriods: sleepPeriods,
+      awakePeriods: awakePeriods
+    };
+  }
+
+
+  /*
+   * Uppdaterar sammanställningen för alla nätter
+   */
+  function calculateAll() {
+
+    summaryList.innerHTML = "";
+
+    let totalWeekSleep = 0;
+
+
+    nights.forEach((night, nightIndex) => {
+
+      const result = calculateNight(nightIndex);
+
+      const summaryElement =
+        document.getElementById(`night-summary-${nightIndex}`);
+
+
+      if (result.error) {
+
+        summaryElement.className = "summary error";
+
+        summaryElement.innerHTML = `
+          <strong>Kontrollera tiderna</strong>
+          ${result.error}
+        `;
+
+        return;
+      }
+
+
+      if (result.empty) {
+
+        summaryElement.className = "summary";
+
+        summaryElement.innerHTML = `
+          <strong>Sammanställning</strong>
+          Ingen sömn registrerad.
+        `;
+
+        addSummaryListItem(
+          night,
+          "Ej ifyllt"
+        );
+
+        return;
+      }
+
+
+      totalWeekSleep += result.totalSleep;
+
+
+      /*
+       * Skapa texten för sömnperioderna
+       *
+       * Exempel:
+       * Sömn 5h 14min + 4h
+       */
+      const sleepText =
+        result.sleepPeriods
+          .map(period => formatDuration(period.duration))
+          .join(" + ");
+
+
+      /*
+       * Skapa texten för vakenperioderna
+       *
+       * Exempel:
+       * Vaken 20min
+       */
+      let awakeText = "";
+
+      if (result.awakePeriods.length > 0) {
+
+        const totalAwake =
+          result.awakePeriods.reduce(
+            (sum, minutes) => sum + minutes,
+            0
+          );
+
+        awakeText =
+          `, vaken ${formatDuration(totalAwake)}`;
+      }
+
+
+      const fullSummary =
+        `Sömn ${sleepText}${awakeText}`;
+
+
+      summaryElement.className = "summary";
+
+      summaryElement.innerHTML = `
+        <strong>Sammanställning</strong>
+        ${fullSummary}
+      `;
+
+
+      addSummaryListItem(
+        night,
+        fullSummary
+      );
+
+    });
+
+
+    weeklyTotal.textContent =
+      formatDuration(totalWeekSleep);
+
+
+    const average =
+      Math.round(totalWeekSleep / 7);
+
+    weeklyAverage.textContent =
+      formatDuration(average);
+  }
+
+
+  /*
+   * Lägger till natten i veckolistan
+   */
+  function addSummaryListItem(night, text) {
+
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      <strong>${night}</strong><br>
+      ${text}
+    `;
+
+    summaryList.appendChild(li);
+  }
+
+
+  /*
+   * Starta sidan
+   */
+  createNights();
+
+
+  /*
+   * VIKTIGT:
+   * Vi använder INTE localStorage eller cookies.
+   *
+   * Dessutom tömmer vi formulären när sidan lämnas.
+   * Det innebär att sömninformationen inte ligger kvar
+   * nästa gång sidan öppnas.
+   */
+  window.addEventListener("pagehide", () => {
+
+    document.querySelectorAll("input[type='time']").forEach(input => {
+      input.value = "";
+    });
+
+  });
+
+
+  window.addEventListener("pageshow", (event) => {
+
+    if (event.persisted) {
+
+      document.querySelectorAll("input[type='time']").forEach(input => {
+        input.value = "";
+      });
+
+      calculateAll();
+    }
+
+  });
+
+</script>
+
+</body>
+</html>
