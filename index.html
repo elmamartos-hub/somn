@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sömnregistrering</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f3f5f7;
+            color: #263238;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .intro {
+            margin: 0;
+            color: #607d8b;
+            line-height: 1.5;
+        }
+
+        .night {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .night h2 {
+            margin: 0 0 16px;
+            font-size: 20px;
+        }
+
+        .periods {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .period {
+            background: #f7f9fa;
+            border-radius: 12px;
+            padding: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #546e7a;
+        }
+
+        input[type="time"] {
+            width: 100%;
+            height: 44px;
+            padding: 8px 10px;
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+            background: white;
+            font-size: 17px;
+        }
+
+        input[type="time"]:focus {
+            outline: none;
+            border-color: #78909c;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 11px 14px;
+        }
+
+        .add-button {
+            margin-top: 12px;
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .add-button:hover {
+            background: #bbdefb;
+        }
+
+        .remove-button {
+            height: 44px;
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .remove-button:hover {
+            background: #ffcdd2;
+        }
+
+        .summary {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: #f1f8e9;
+            line-height: 1.5;
+        }
+
+        .summary strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .summary.error {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+
+        .weekly-summary {
+            background: white;
+            border-radius: 16px;
+            padding: 22px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .weekly-summary h2 {
+            margin: 0 0 16px;
+            font-size: 22px;
+        }
+
+        .summary-row {
+            padding: 12px 0;
+            border-bottom: 1px solid #eceff1;
+            line-height: 1.5;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-night {
+            font-weight: bold;
+        }
+
+        .totals {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 12px;
+            background: #eceff1;
+        }
+
+        .total-value {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .average {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px;
+            }
+
+            header,
+            .night,
+            .weekly-summary {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .period {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .remove-button {
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+
+            input[type="time"] {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Sömnregistrering</h1>
+
+        <p class="intro">
+            Fyll i när han somnar och vaknar. Om han vaknar under natten,
+            lägg till en ny sömnperiod.
+        </p>
+    </header>
+
+    <div id="nights"></div>
+
+    <section class="weekly-summary">
+        <h2>Veckosammanställning</h2>
+
+        <div id="summary-list"></div>
+
+        <div class="totals">
+            <div>Total sömn under veckan</div>
+
+            <div class="total-value" id="total-sleep">
+                0 h 0 min
+            </div>
+
+            <div class="average">
+                Genomsnitt per natt:
+                <strong id="average-sleep">0 h 0 min</strong>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    const nights = [
+        "Söndag → måndag",
+        "Måndag → tisdag",
+        "Tisdag → onsdag",
+        "Onsdag → torsdag",
+        "Torsdag → fredag",
+        "Fredag → lördag",
+        "Lördag → söndag"
+    ];
+
+    const nightsContainer = document.getElementById("nights");
+
+    nights.forEach((night, nightIndex) => {
+        const nightElement = document.createElement("section");
+
+        nightElement.className = "night";
+        nightElement.dataset.night = nightIndex;
+
+        nightElement.innerHTML = `
+            <h2>${night}</h2>
+
+            <div class="periods" id="periods-${nightIndex}"></div>
+
+            <button
+                type="button"
+                class="add-button"
+                onclick="addPeriod(${nightIndex})"
+            >
+                + Lägg till sömnperiod
+            </button>
+
+            <div
+                class="summary"
+                id="summary-${nightIndex}"
+            >
+                <strong>Sammanställning</strong>
+                Fyll i tiderna ovan.
+            </div>
+        `;
+
+        nightsContainer.appendChild(nightElement);
+
+        addPeriod(nightIndex);
+    });
+
+    function addPeriod(nightIndex) {
+        const container =
+            document.getElementById(`periods-${nightIndex}`);
+
+        const period = document.createElement("div");
+        period.className = "period";
+
+        period.innerHTML = `
+            <div>
+                <label>Somnade</label>
+                <input type="time" class="sleep-start">
+            </div>
+
+            <div>
+                <label>Vaknade</label>
+                <input type="time" class="sleep-end">
+            </div>
+
+            <button
+                type="button"
+                class="remove-button"
+                onclick="removePeriod(this)"
+            >
+                Ta bort
+            </button>
+        `;
+
+        container.appendChild(period);
+
+        const inputs = period.querySelectorAll("input");
+
+        inputs.forEach(input => {
+            input.addEventListener("input", calculateEverything);
+        });
+
+        calculateEverything();
+    }
+
+    function removePeriod(button) {
+        const period = button.closest(".period");
+        const container = period.parentElement;
+
+        if (container.children.length === 1) {
+            period.querySelector(".sleep-start").value = "";
+            period.querySelector(".sleep-end").value = "";
+        } else {
+            period.remove();
+        }
+
+        calculateEverything();
+    }
+
+    function timeToMinutes(time) {
+        if (!time) {
+            return null;
+        }
+
+        const [hours, minutes] = time.split(":").map(Number);
+
+        return hours * 60 + minutes;
+    }
+
+    function formatDuration(totalMinutes) {
+        totalMinutes = Math.max(0, Math.round(totalMinutes));
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        if (hours === 0 && minutes === 0) {
+            return "0 min";
+        }
+
+        if (hours === 0) {
+            return `${minutes} min`;
+        }
+
+        if (minutes === 0) {
+            return `${hours} h`;
+        }
+
+        return `${hours} h ${minutes} min`;
+    }
+
+    function calculateNight(nightIndex) {
+        const container =
+            document.getElementById(`periods-${nightIndex}`);
+
+        const periodElements =
+            Array.from(container.querySelectorAll(".period"));
+
+        const periods = [];
+        let previousEnd = null;
+
+        for (let i = 0; i < periodElements.length; i++) {
+            const startInput =
+                periodElements[i].querySelector(".sleep-start");
+
+            const endInput =
+                periodElements[i].querySelector(".sleep-end");
+
+            const start = timeToMinutes(startInput.value);
+            const end = timeToMinutes(endInput.value);
+
+            if (start === null && end === null) {
+                continue;
+            }
+
+            if (start === null || end === null) {
+                return {
+                    error:
+                        "Fyll i både somnade och vaknade på varje använd rad."
+                };
+            }
+
+            let adjustedStart = start;
+            let adjustedEnd = end;
+
+            if (previousEnd === null) {
+                if (adjustedEnd <= adjustedStart) {
+                    adjustedEnd += 1440;
+                }
+            } else {
+                while (adjustedStart < previousEnd) {
+                    adjustedStart += 1440;
+                }
+
+                adjustedEnd = end;
+
+                while (adjustedEnd <= adjustedStart) {
+                    adjustedEnd += 1440;
+                }
+            }
+
+            const duration = adjustedEnd - adjustedStart;
+
+            if (duration > 1440) {
+                return {
+                    error:
+                        "En sömnperiod är längre än 24 timmar. Kontrollera tiderna."
+                };
+            }
+
+            if (
+                previousEnd !== null &&
+                adjustedStart < previousEnd
+            ) {
+                return {
+                    error:
+                        "Sömnperioderna överlappar varandra. Kontrollera tiderna."
+                };
+            }
+
+            periods.push({
+                start: adjustedStart,
+                end: adjustedEnd,
+                duration: duration
+            });
+
+            previousEnd = adjustedEnd;
+        }
+
+        if (periods.length === 0) {
+            return {
+                empty: true,
+                totalSleep: 0,
+                awakePeriods: []
+            };
+        }
+
+        const awakePeriods = [];
+
+        for (let i = 1; i < periods.length; i++) {
+            const awake =
+                periods[i].start - periods[i - 1].end;
+
+            if (awake > 0) {
+                awakePeriods.push(awake);
+            }
+        }
+
+        const totalSleep =
+            periods.reduce(
+                (sum, period) => sum + period.duration,
+                0
+            );
+
+        const totalAwake =
+            awakePeriods.reduce(
+                (sum, minutes) => sum + minutes,
+                0
+            );
+
+        return {
+            empty: false,
+            periods: periods,
+            awakePeriods: awakePeriods,
+            totalSleep: totalSleep,
+            totalAwake: totalAwake
+        };
+    }
+
+    function calculateEverything() {
+        const summaryList =
+            document.getElementById("summary-list");
+
+        summaryList.innerHTML = "";
+
+        let totalWeekSleep = 0;
+
+        nights.forEach((night, nightIndex) => {
+            const result = calculateNight(nightIndex);
+
+            const summaryElement =
+                document.getElementById(
+                    `summary-${nightIndex}`
+                );
+
+            if (result.error) {
+                summaryElement.className = "summary error";
+
+                summaryElement.innerHTML = `
+                    <strong>Kontrollera tiderna</strong>
+                    ${result.error}
+                `;
+
+                addWeeklySummary(night, result.error);
+
+                return;
+            }
+
+            if (result.empty) {
+                summaryElement.className = "summary";
+
+                summaryElement.innerHTML = `
+                    <strong>Sammanställning</strong>
+                    Ingen sömn registrerad.
+                `;
+
+                addWeeklySummary(night, "Ej ifyllt");
+
+                return;
+            }
+
+            totalWeekSleep += result.totalSleep;
+
+            const sleepText =
+                result.periods
+                    .map(period =>
+                        formatDuration(period.duration)
+                    )
+                    .join(" + ");
+
+            let awakeText = "";
+
+            if (result.totalAwake > 0) {
+                awakeText =
+                    `, vaken ${formatDuration(result.totalAwake)}`;
+            }
+
+            const summaryText =
+                `Sömn ${sleepText}${awakeText}`;
+
+            summaryElement.className = "summary";
+
+            summaryElement.innerHTML = `
+                <strong>Sammanställning</strong>
+                ${summaryText}
+            `;
+
+            addWeeklySummary(night, summaryText);
+        });
+
+        document.getElementById("total-sleep")
+            .textContent =
+            formatDuration(totalWeekSleep);
+
+        const average = totalWeekSleep / 7;
+
+        document.getElementById("average-sleep")
+            .textContent =
+            formatDuration(average);
+    }
+
+    function addWeeklySummary(night, text) {
+        const summaryList =
+            document.getElementById("summary-list");
+
+        const row = document.createElement("div");
+
+        row.className = "summary-row";
+
+        row.innerHTML = `
+            <div class="summary-night">
+                ${night}
+            </div>
+
+            <div>
+                ${text}
+            </div>
+        `;
+
+        summaryList.appendChild(row);
+    }
+
+    calculateEverything();
+
+    /*
+     * Ingen data sparas.
+     *
+     * Sidan använder inte:
+     * - localStorage
+     * - sessionStorage
+     * - cookies
+     * - databas
+     *
+     * Informationen finns därför bara i formuläret
+     * medan sidan är öppen.
+     */
+</script>
+
+</body>
+</html>
